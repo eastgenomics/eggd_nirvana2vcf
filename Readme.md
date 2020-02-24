@@ -1,7 +1,7 @@
 <!-- dx-header -->
-# dnanexus_nirvana2vcf (DNAnexus Platform App)
+# eggd_nirvana2vcf (DNAnexus Platform App)
 
-dnanexus_nirvana2vcf
+eggd_nirvana2vcf
 
 This is the source code for an app that runs on the DNAnexus Platform.
 For more information about how to run or modify it, see
@@ -20,7 +20,7 @@ The app requires a JSON file (.json.gz) and a VCF file (.vcf) to run.
 
 ## What does this app output?
 The app outputs one file, where [outPrefix] is the JSON filename without extension:
-1. [outPrefix].refseq_nirvana_203.annotated.vcf - Annotation of variants present within the Nirvana input VCF/output JSON converted to vcf format.
+1. [outPrefix].annotated.vcf - Annotation of variants present within the Nirvana input VCF/output JSON converted to vcf format.
 
 ## How does this app work?
 The app runs a bash script which runs the python script which performs the conversion. After the conversion has been performed variants in the input VCF and JSON files are checked for concordance to provide assurance that the output of the Nirvana annotation is complete.
