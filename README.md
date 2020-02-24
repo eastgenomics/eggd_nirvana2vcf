@@ -1,1 +1,1 @@
-# dnanexus_nirvana2vcf
+# eggd_nirvana2vcf
