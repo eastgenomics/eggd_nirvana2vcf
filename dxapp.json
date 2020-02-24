@@ -52,7 +52,7 @@
     "interpreter": "bash",
     "release": "16.04",
     "distribution": "Ubuntu",
-    "file": "src/dnanexus_nirvana2vcf.sh"
+    "file": "src/eggd_nirvana2vcf.sh"
   },
   "access": {
     "project": "CONTRIBUTE",
