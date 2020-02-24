@@ -1,6 +1,6 @@
 {
-  "name": "dnanexus_nirvana2vcf",
-  "title": "dnanexus_nirvana2vcf",
+  "name": "eggd_nirvana2vcf_v1.0.0",
+  "title": "eggd_nirvana2vcf_v1.0.0",
   "summary": "dnanexus_nirvana2vcf",
   "tags:": ["Annotation"],
   "properties": {
@@ -22,7 +22,8 @@
       "class": "file",
       "optional": false,
       "patterns": [
-        "*.refseq_nirvana_203.vcf"
+        "*.vcf",
+        "*.vcf.gz"
       ],
       "help": ""
     }
