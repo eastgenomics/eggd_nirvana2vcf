@@ -1,7 +1,7 @@
 {
   "name": "eggd_nirvana2vcf_v1.0.0",
   "title": "eggd_nirvana2vcf_v1.0.0",
-  "summary": "dnanexus_nirvana2vcf",
+  "summary": "eggd_nirvana2vcf",
   "tags:": ["Annotation"],
   "properties": {
     "githubRelease": "v1.0.0"
