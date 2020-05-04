@@ -21,7 +21,6 @@ import pysam
 
 
 def open_file( filename ):
-    
 
     fh = None
     if ".gz" in filename:
@@ -30,7 +29,6 @@ def open_file( filename ):
         fh = open(filename, 'rb')
 
     return fh
-
 
 
 def readin_json( filename ):
@@ -51,7 +49,6 @@ def merge_files( vcf_file, json_file, out_file):
 
     Returns:
         None
-
     
     Raises:
         No exceptions are caught by the function
@@ -63,38 +60,52 @@ def merge_files( vcf_file, json_file, out_file):
     
     vcf_in = pysam.VariantFile( vcf_file )
 
-    print vcf_file
-    print json_file
-
-    # add CSQ to the info field
+    # add CSQ to the info field in header
     vcf_in.header.add_line( '##INFO=<ID=CSQ,Number=.,Type=String,Description="Consequence type as predicted by VEP. Format: Allele|Gene|HGNC|RefSeq|Feature|Consequence|cDNA_position|Protein_position|Amino_acids|Existing_variation|SIFT|PolyPhen|HGVSc">')
 
-#    vcf_in.header.remove_line("CSQT")
-
-#    vcf_in.header.add_line( '##source_nirvana= Nirvana X.XXXX')
-
     # print the vcf header
-    #sys.stdout.write(str( vcf_in.header ))
     out_fh.write(str( vcf_in.header ))
 
-    variant_counter = 0
+    position_counter = 0
 
-    # Loop through each of the vcrf entries.
+    mnv_adjustment = 0  # Nirvana merges SNVs into MNVs in an extra position record. We need to count these to keep vcf aligned with json 
+    
+    # Loop through each of the vcf entries.
     for rec_index, rec in enumerate(vcf_in.fetch()):
-#        print rec
-
-        variant_info =  annotations[ "positions" ][ variant_counter ]
+        
+        # Get the equivalent record from the json
+        position_info = annotations[ "positions" ][ position_counter + mnv_adjustment ]
 
         vcf_chrom = rec.chrom
-        json_chrom = variant_info["chromosome"]
+        json_chrom = position_info["chromosome"]
 
         vcf_pos = rec.pos
-        json_pos = variant_info["position"]
+        json_pos = position_info["position"]
 
-        assert (vcf_chrom == json_chrom) and (vcf_pos == json_pos), "vcf and json out of sync at vcf line %d! Aborting." % variant_counter
+        # 2.0.10 has MNVs represented as both as individual SNVs and as MNVs
+        # These are in separate json records
+        # Here we skip those MNV records
+        # Ideally we would include these, but this will require a major redesign of this code
+        while not ((vcf_chrom == json_chrom) and (vcf_pos == json_pos)):
+            '''
+            print "\nV", vcf_chrom, vcf_pos
+            print "J", json_chrom, json_pos
+            print rec_index
+            print position_counter
+            print mnv_adjustment
+            print position_counter + mnv_adjustment
+            print len(annotations["positions"])
+            '''
+            mnv_adjustment += 1
+            position_info = annotations[ "positions" ][ position_counter + mnv_adjustment ]
+            json_chrom = position_info["chromosome"]
+            json_pos = position_info["position"]
+        
+        # Make sure vcf record and json record positions are aligned 
+        assert (vcf_chrom == json_chrom) and (vcf_pos == json_pos), "vcf and json out of sync at vcf line %d! Aborting." % position_counter
             #print "Mismatch:"
             #print "rec_index", rec_index
-            #print "variant_counter", variant_counter
+            #print "position_counter", position_counter
             #print
             #print "VCF CHR", vcf_chrom
             #print "JSON CHR", json_chrom
@@ -102,33 +113,39 @@ def merge_files( vcf_file, json_file, out_file):
             #print "VCF POS", vcf_pos
             #print "JSON POS", json_pos
             #print
-
+        
  #       my ($Allele,$ENS_gene, $HGNC,$RefSeq,$feature,$effects,$CDS_position,$Protein_position,$Amino_acid,$Existing_variation,$SIFT,$PolyPhen,$HGVSc,$Distance) = @$CSQ;
 
         CSQs = []
         
-        for variant in variant_info[ 'variants' ]:
-            #pp.pprint( variant)
+        for variant in position_info[ 'variants' ]:
+#            pp.pprint( variant ["transcripts"])
+#            print variant.keys()
+#            raw_input()
             
-            if 'transcripts' not in variant or 'refSeq' not in variant [ 'transcripts' ]:
+            # No transcript annotation so include the unannotated vcf line
+            if 'transcripts' not in variant.keys() or 'refSeq' not in variant [ 'transcripts' ]:
+
                 #sys.stdout.write(str( rec ))
                 out_fh.write(str( rec ))
                 continue
-
            
-#            pp.pprint( variant )
-            for transcript in  variant [ 'transcripts' ][ 'refSeq' ]:
+            #pp.pprint( variant )
+            
+            for transcript in variant [ 'transcripts' ][ 'refSeq' ]:
+                #print "TXs"
+                #pp.pprint( transcript.items() )
+                #raw_input()
                 CSQ = []
 
                 # Some kind of stupid representation of in/dels
                 if (variant[ 'altAllele'] == "-"):
-                    variant['altAllele'] = variant_info[ 'refAllele' ].replace( variant['refAllele'], "", 1 )
+                    variant['altAllele'] = position_info[ 'refAllele' ].replace( variant['refAllele'], "", 1 )
                 elif (variant[ 'refAllele'] == "-"):
-                    variant['altAllele'] = variant_info[ 'refAllele' ] + variant['altAllele']
-                    variant['refAllele'] = variant_info[ 'refAllele' ]
-                    
-                
+                    variant['altAllele'] = position_info[ 'refAllele' ] + variant['altAllele']
+                    variant['refAllele'] = position_info[ 'refAllele' ]
 
+                # Add CSQ values from json to vcf CSQ string 
                 CSQ.append( variant[ 'altAllele'])
                 CSQ.append( transcript[ 'geneId'])
                 CSQ.append( transcript[ 'hgnc'])
@@ -163,20 +180,15 @@ def merge_files( vcf_file, json_file, out_file):
 
         rec.info['CSQ' ] = ",".join(CSQs)
 
-        
-        #print rec.info['CSQ' ]
+        out_fh.write(str( rec )) 
 
-        #sys.stdout.write(str( rec ))
-        out_fh.write(str( rec ))  # Does an output file stop truncated records? 
-        # sys.stdout.flush()  # Does flush stop truncated records? Nope
+        position_counter += 1
 
-        variant_counter += 1
-
-
-    print "Annotations: ", len(annotations[ "positions" ])
-    print "VCF Records:", variant_counter
+    # A check that both files contained tme same number of records (taking into account extra records in json for MNVs)
+    print "Annotations: ", len(annotations[ "positions" ]) - mnv_adjustment
+    print "VCF Records:", position_counter
+    print "MNVs:", mnv_adjustment
     out_fh.close()
-
 
 if __name__ == "__main__":
 
@@ -188,10 +200,4 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-#    args.json_file = '/data/projects/matt/variant_comparison/nirvana_annotation/X004856.json.gz'
-#    args.vcf_file  = '/data/projects/matt/variant_comparison/nirvana_annotation/X004856.vcf.gz'
-#    args.json_file = 'test.json'
-
-
     merge_files( vcf_file = args.vcf_file, json_file = args.json_file, out_file = args.out_file)
-
