@@ -1,7 +1,7 @@
 {
-  "name": "eggd_nirvana2vcf_v1.0.0",
-  "title": "eggd_nirvana2vcf_v1.0.0",
-  "summary": "eggd_nirvana2vcf",
+  "name": "nirvana2vcf_v1.1.0",
+  "title": "nirvana2vcf_v1.1.0",
+  "summary": "nirvana2vcf",
   "tags:": ["Annotation"],
   "properties": {
     "githubRelease": "v1.0.0"

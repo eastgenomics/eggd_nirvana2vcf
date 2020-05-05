@@ -57,7 +57,7 @@ def merge_files( vcf_file, json_file, out_file):
     out_fh = open(out_file, "w")
 
     annotations = readin_json( json_file )
-    
+
     vcf_in = pysam.VariantFile( vcf_file )
 
     # add CSQ to the info field in header
@@ -69,10 +69,10 @@ def merge_files( vcf_file, json_file, out_file):
     position_counter = 0
 
     mnv_adjustment = 0  # Nirvana merges SNVs into MNVs in an extra position record. We need to count these to keep vcf aligned with json 
-    
+
     # Loop through each of the vcf entries.
     for rec_index, rec in enumerate(vcf_in.fetch()):
-        
+
         # Get the equivalent record from the json
         position_info = annotations[ "positions" ][ position_counter + mnv_adjustment ]
 
@@ -87,55 +87,25 @@ def merge_files( vcf_file, json_file, out_file):
         # Here we skip those MNV records
         # Ideally we would include these, but this will require a major redesign of this code
         while not ((vcf_chrom == json_chrom) and (vcf_pos == json_pos)):
-            '''
-            print "\nV", vcf_chrom, vcf_pos
-            print "J", json_chrom, json_pos
-            print rec_index
-            print position_counter
-            print mnv_adjustment
-            print position_counter + mnv_adjustment
-            print len(annotations["positions"])
-            '''
             mnv_adjustment += 1
             position_info = annotations[ "positions" ][ position_counter + mnv_adjustment ]
             json_chrom = position_info["chromosome"]
             json_pos = position_info["position"]
-        
+
         # Make sure vcf record and json record positions are aligned 
         assert (vcf_chrom == json_chrom) and (vcf_pos == json_pos), "vcf and json out of sync at vcf line %d! Aborting." % position_counter
-            #print "Mismatch:"
-            #print "rec_index", rec_index
-            #print "position_counter", position_counter
-            #print
-            #print "VCF CHR", vcf_chrom
-            #print "JSON CHR", json_chrom
-            #print
-            #print "VCF POS", vcf_pos
-            #print "JSON POS", json_pos
-            #print
-        
- #       my ($Allele,$ENS_gene, $HGNC,$RefSeq,$feature,$effects,$CDS_position,$Protein_position,$Amino_acid,$Existing_variation,$SIFT,$PolyPhen,$HGVSc,$Distance) = @$CSQ;
 
         CSQs = []
-        
+
         for variant in position_info[ 'variants' ]:
-#            pp.pprint( variant ["transcripts"])
-#            print variant.keys()
-#            raw_input()
-            
+
             # No transcript annotation so include the unannotated vcf line
             if 'transcripts' not in variant.keys() or 'refSeq' not in variant [ 'transcripts' ]:
 
-                #sys.stdout.write(str( rec ))
                 out_fh.write(str( rec ))
                 continue
-           
-            #pp.pprint( variant )
-            
+
             for transcript in variant [ 'transcripts' ][ 'refSeq' ]:
-                #print "TXs"
-                #pp.pprint( transcript.items() )
-                #raw_input()
                 CSQ = []
 
                 # Some kind of stupid representation of in/dels
@@ -152,12 +122,12 @@ def merge_files( vcf_file, json_file, out_file):
                 CSQ.append( transcript[ 'transcript'])
                 CSQ.append( "")
                 CSQ.append( "&".join(transcript[ 'consequence']))
-                
+
                 CSQ.append( transcript.get('cdsPos', ""))
                 CSQ.append( transcript.get( 'proteinPos', ""))
                 CSQ.append( transcript.get( 'aminoAcids', ""))
                 CSQ.append( "")
-                
+
                 sift_pred = transcript.get( 'siftPrediction', "")
                 sift_score = transcript.get( 'siftScore', "")
                 if sift_pred or sift_score:
@@ -165,7 +135,7 @@ def merge_files( vcf_file, json_file, out_file):
                 else:
                     sift = ""
                 CSQ.append( sift)
-                
+
                 poly_pred = transcript.get( 'polyPhenPrediction', "")
                 poly_score = transcript.get( 'polyPhenScore', "")
                 if poly_pred or poly_score:
