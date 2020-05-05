@@ -101,8 +101,6 @@ def merge_files( vcf_file, json_file, out_file):
 
             # No transcript annotation so include the unannotated vcf line
             if 'transcripts' not in variant.keys() or 'refSeq' not in variant [ 'transcripts' ]:
-
-                out_fh.write(str( rec ))
                 continue
 
             for transcript in variant [ 'transcripts' ][ 'refSeq' ]:
