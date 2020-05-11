@@ -4,7 +4,7 @@
   "summary": "nirvana2vcf",
   "tags:": ["Annotation"],
   "properties": {
-    "githubRelease": "v1.0.0"
+    "githubRelease": "v1.1.0"
   },
   "dxapi": "1.0.0",
   "inputSpec": [
