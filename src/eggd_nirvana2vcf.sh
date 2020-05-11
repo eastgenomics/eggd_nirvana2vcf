@@ -45,7 +45,7 @@ main() {
 
     fi
 
-    output_vcf_name="${json_file_prefix}.refseq_nirvana_203.annotated.vcf"
+    output_vcf_name="${json_file_prefix}.refseq_nirvana_2010.annotated.vcf"
 
     nirvana2vcf.py -j input.json.gz -v input.vcf -o $output_vcf_name
 
