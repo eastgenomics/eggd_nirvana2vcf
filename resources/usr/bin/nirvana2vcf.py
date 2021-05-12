@@ -31,13 +31,13 @@ def open_file( filename ):
     return fh
 
 
-def readin_json( filename ):
-
-    json_data = open_file( filename )
-
-    annotations = json.load(json_data)
-
-    return annotations
+def get_next_json_line_as_dict(json_fh):
+    """
+    Return the next line in json_fh as a dict
+    """
+    line = json_fh.readline()
+    line = line.strip().rstrip(",")
+    return json.loads(line)
 
 
 def merge_files( vcf_file, json_file, out_file):
@@ -56,7 +56,8 @@ def merge_files( vcf_file, json_file, out_file):
 
     out_fh = open(out_file, "w")
 
-    annotations = readin_json( json_file )
+    json_fh = open_file( json_file )
+    json_fh.readline()  # Skip header line
 
     vcf_in = pysam.VariantFile( vcf_file )
 
@@ -66,15 +67,19 @@ def merge_files( vcf_file, json_file, out_file):
     # print the vcf header
     out_fh.write(str( vcf_in.header ))
 
-    position_counter = 0
+    vcf_position_counter = 0
+    json_position_counter = 0
 
     mnv_adjustment = 0  # Nirvana merges SNVs into MNVs in an extra position record. We need to count these to keep vcf aligned with json 
 
     # Loop through each of the vcf entries.
-    for rec_index, rec in enumerate(vcf_in.fetch()):
+    for rec in vcf_in.fetch():
+
+        vcf_position_counter += 1
 
         # Get the equivalent record from the json
-        position_info = annotations[ "positions" ][ position_counter + mnv_adjustment ]
+        position_info = get_next_json_line_as_dict(json_fh)
+        json_position_counter += 1
 
         vcf_chrom = rec.chrom
         json_chrom = position_info["chromosome"]
@@ -88,12 +93,13 @@ def merge_files( vcf_file, json_file, out_file):
         # Ideally we would include these, but this will require a major redesign of this code
         while not ((vcf_chrom == json_chrom) and (vcf_pos == json_pos)):
             mnv_adjustment += 1
-            position_info = annotations[ "positions" ][ position_counter + mnv_adjustment ]
+            position_info = get_next_json_line_as_dict(json_fh)
+            json_position_counter += 1
             json_chrom = position_info["chromosome"]
             json_pos = position_info["position"]
 
         # Make sure vcf record and json record positions are aligned 
-        assert (vcf_chrom == json_chrom) and (vcf_pos == json_pos), "vcf and json out of sync at vcf line %d! Aborting." % position_counter
+        assert (vcf_chrom == json_chrom) and (vcf_pos == json_pos), "vcf and json out of sync at vcf line %d! Aborting." % vcf_position_counter
 
         CSQs = []
 
@@ -150,11 +156,13 @@ def merge_files( vcf_file, json_file, out_file):
 
         out_fh.write(str( rec )) 
 
-        position_counter += 1
+    # Check that there are no more variants in json
+    next_line = json_fh.readline()
+    assert next_line.strip() == """],"genes":[""", "Error - unprocessed variants positions in json\n%s" % next_line
 
     # A check that both files contained tme same number of records (taking into account extra records in json for MNVs)
-    print "Annotations: ", len(annotations[ "positions" ]) - mnv_adjustment
-    print "VCF Records:", position_counter
+    print "Annotations: ", json_position_counter - mnv_adjustment
+    print "VCF Records:", vcf_position_counter
     print "MNVs:", mnv_adjustment
     out_fh.close()
 
